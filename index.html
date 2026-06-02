@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f4c35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Smart Care</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+  --c-bg:#f0f7f4; --c-surface:#ffffff;
+  --c-green1:#e8f5e9; --c-green2:#c8e6c9; --c-green3:#4caf50;
+  --c-primary:#2e7d52; --c-dark:#0f4c35; --c-darker:#083326;
+  --c-accent:#00c878; --c-border:#dceee5; --c-muted:#6b9e82;
+  --c-text:#1a3a2a; --c-error:#d32f2f;
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:28px;
+  --sh-sm:0 1px 4px rgba(15,76,53,.06),0 2px 8px rgba(15,76,53,.06);
+  --sh-md:0 4px 12px rgba(15,76,53,.1),0 8px 24px rgba(15,76,53,.06);
+  --sh-lg:0 12px 32px rgba(15,76,53,.12),0 24px 60px rgba(15,76,53,.08);
+  --sh-xl:0 24px 80px rgba(0,0,0,.25);
+  --t:all .2s cubic-bezier(.4,0,.2,1);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;height:100%}
+body{
+  font-family:'Poppins',-apple-system,sans-serif;
+  background:var(--c-dark);
+  color:var(--c-text);
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+  height:100%;
+  position:fixed;width:100%;
+}
+button,input,textarea,select{font-family:inherit}
+button{cursor:pointer;border:none;background:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+a{text-decoration:none;color:inherit;-webkit-tap-highlight-color:transparent}
+img{max-width:100%}
+::-webkit-scrollbar{width:0;height:0}
+@media(min-width:600px){
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--c-green2);border-radius:4px}
+}
+
+/* ── LOADING SCREEN ── */
+.loading-screen{
+  position:fixed;inset:0;z-index:9000;
+  background:linear-gradient(160deg,var(--c-darker) 0%,#1a6b47 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  padding-top:var(--safe-top);
+  transition:opacity .4s;
+}
+.loading-screen.hide{opacity:0;pointer-events:none}
+.ls-logo{width:72px;height:72px;border-radius:20px;background:var(--c-accent);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--c-darker);font-weight:900;box-shadow:0 8px 32px rgba(0,200,120,.4)}
+.ls-title{font-size:24px;font-weight:900;color:#fff}
+.ls-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--c-accent);border-radius:50%;animation:spin .8s linear infinite}
+.ls-msg{font-size:13px;color:rgba(255,255,255,.55)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 22px;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;transition:var(--t);white-space:nowrap;border:none;outline:none;min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:var(--c-primary);color:#fff;box-shadow:0 4px 14px rgba(46,125,82,.3)}
+.btn-primary:hover{background:#235f3f}
+.btn-dark{background:var(--c-dark);color:#fff}
+.btn-ghost{background:transparent;color:var(--c-muted)}
+.btn-ghost:hover{background:var(--c-green1);color:var(--c-text)}
+.btn-danger{background:var(--c-error);color:#fff}
+.btn-light{background:var(--c-green1);color:var(--c-dark)}
+.btn-light:hover{background:var(--c-green2)}
+.btn-accent{background:var(--c-accent);color:var(--c-darker);font-weight:800}
+.btn-sm{padding:8px 16px;font-size:12px;min-height:36px}
+.btn-xs{padding:6px 12px;font-size:11px;min-height:32px}
+.btn-ico{padding:10px;border-radius:50%;min-height:44px;min-width:44px}
+.w-full{width:100%}
+
+/* ── FORM ── */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--c-muted);margin-bottom:6px}
+.form-input{
+  width:100%;padding:14px 16px;
+  border:2px solid var(--c-border);border-radius:var(--r-sm);
+  font-size:16px;color:var(--c-text);background:var(--c-surface);
+  outline:none;transition:var(--t);-webkit-appearance:none;
+}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 4px rgba(46,125,82,.1)}
+.form-input::placeholder{color:#b0ccb8}
+textarea.form-input{resize:vertical;min-height:100px;line-height:1.7}
+
+/* ── MODAL/SHEET ── */
+.overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(8,51,38,.55);backdrop-filter:blur(8px) saturate(1.4);
+  display:flex;align-items:flex-end;
+  z-index:3000;opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.overlay.open{opacity:1;pointer-events:all}
+@media(min-width:520px){.overlay{align-items:center}}
+.sheet{
+  background:var(--c-surface);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  width:100%;
+  max-height:90vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:var(--sh-xl);
+}
+@media(min-width:520px){
+  .sheet{border-radius:var(--r-xl);max-width:500px;margin:auto;transform:scale(.96) translateY(16px)}
+}
+.overlay.open .sheet{transform:none}
+.sheet-handle{width:36px;height:4px;background:var(--c-border);border-radius:4px;margin:12px auto 4px;}
+@media(min-width:520px){.sheet-handle{display:none}}
+.sheet-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 22px 12px;border-bottom:1px solid var(--c-border);
+  position:sticky;top:0;background:var(--c-surface);z-index:1;
+}
+.sheet-title{font-size:17px;font-weight:800}
+.sheet-body{
+  padding:18px 22px;
+  padding-bottom:8px;
+}
+.sheet-foot{
+  padding:12px 22px;
+  padding-bottom:calc(16px + var(--safe-bot));
+  border-top:1px solid var(--c-border);
+  display:flex;gap:10px;justify-content:flex-end;
+  background:var(--c-surface);
+}
+
+/* ── FIREBASE SETUP ── */
+.setup-card{background:var(--c-green1);border-radius:var(--r-md);padding:16px;margin-bottom:16px;border-left:4px solid var(--c-primary)}
+.setup-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:1px}
+.step-txt{font-size:13px;line-height:1.6;color:var(--c-text)}
+.step-txt b{color:var(--c-dark)}
+.step-txt code{background:rgba(46,125,82,.12);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--c-primary);font-family:monospace}
+
+/* ── SHELL ── */
+.sc-shell{
+  max-width:430px;margin:0 auto;
+  height:100dvh;
+  background:var(--c-surface);
+  display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+  box-shadow:0 0 80px rgba(0,0,0,.2);
+}
+
+/* ── APP BAR ── */
+.sc-appbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 16px;
+  padding-top:calc(13px + var(--safe-top));
+  background:var(--c-dark);
+  position:relative;z-index:100;flex-shrink:0;
+}
+.sc-logo{display:flex;align-items:center;gap:9px}
+.logo-mark{width:34px;height:34px;border-radius:10px;background:var(--c-accent);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,200,120,.3);color:var(--c-darker);font-weight:900}
+.logo-text{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.3px;line-height:1.1}
+.logo-text span{font-size:10px;font-weight:400;color:rgba(255,255,255,.5);display:block;letter-spacing:.5px}
+.appbar-right{display:flex;align-items:center;gap:6px}
+
+/* ── SYNC INDICATOR ── */
+.sync-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--c-accent);
+  box-shadow:0 0 6px rgba(0,200,120,.6);
+  animation:sync-pulse 2s infinite;
+  flex-shrink:0;
+}
+.sync-dot.offline{background:#f57c00;box-shadow:0 0 6px rgba(245,124,0,.6)}
+@keyframes sync-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* ── NURSE BANNER ── */
+.nurse-banner{display:none;background:var(--c-accent);color:var(--c-darker);text-align:center;padding:7px;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.nurse-banner.on{display:block;animation:pulse-banner 2.5s infinite}
+@keyframes pulse-banner{0%,100%{opacity:1}50%{opacity:.75}}
+
+/* ── NURSE TOOLBAR ── */
+.nurse-toolbar{display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--c-darker);border-bottom:2px solid rgba(0,200,120,.3);overflow-x:auto;flex-shrink:0}
+.nurse-toolbar.on{display:flex}
+.nurse-toolbar::-webkit-scrollbar{height:0}
+.nt-label{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.4);white-space:nowrap;margin-right:4px}
+.nt-sep{width:1px;height:24px;background:rgba(255,255,255,.1);flex-shrink:0}
+.nt-tab-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer;transition:var(--t);white-space:nowrap;flex-shrink:0;min-height:36px}
+.nt-tab-chip.on{background:var(--c-accent);border-color:var(--c-accent);color:var(--c-darker)}
+.nt-tab-chip .tc-edit{opacity:.5;font-size:10px;margin-left:2px;padding:2px 4px}
+.nt-tab-chip .tc-edit:hover{opacity:1}
+.nt-add{display:inline-flex;align-items:center;gap:5px;padding:8px 13px;border-radius:100px;font-size:12px;font-weight:600;background:transparent;border:1.5px dashed rgba(255,255,255,.2);color:rgba(255,255,255,.4);cursor:pointer;transition:var(--t);white-space:nowrap;flex-shrink:0;min-height:36px}
+.nt-add:hover{border-color:var(--c-accent);color:var(--c-accent)}
+
+/* ── BODY ── */
+.sc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:16px}
+
+/* ── BOTTOM NAV ── */
+.sc-nav{flex-shrink:0;background:var(--c-surface);border-top:1px solid var(--c-border);display:flex;z-index:100;box-shadow:0 -2px 20px rgba(15,76,53,.08);padding-bottom:var(--safe-bot)}
+.sc-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;color:var(--c-muted);border:none;background:none;cursor:pointer;transition:var(--t);position:relative;min-height:56px}
+.sc-nav-btn.on{color:var(--c-primary)}
+.sc-nav-btn.on::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;background:var(--c-primary);border-radius:0 0 4px 4px}
+.sc-nav-btn .nb-icon{font-size:24px;line-height:1}
+.sc-nav-btn .nb-label{font-size:10px;font-weight:600;margin-top:3px}
+
+/* ── SUB-TABS ── */
+.sc-subtabs{display:flex;overflow-x:auto;gap:2px;padding:10px 14px 0;background:var(--c-surface);border-bottom:1px solid var(--c-border)}
+.sc-subtabs::-webkit-scrollbar{height:0}
+.sc-stab{display:inline-flex;align-items:center;gap:5px;padding:9px 16px 11px;border:none;background:none;font-size:13px;font-weight:500;color:var(--c-muted);white-space:nowrap;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;transition:var(--t);min-height:44px}
+.sc-stab.on{color:var(--c-primary);font-weight:700;border-bottom-color:var(--c-primary)}
+
+/* ── PAGE HEADER ── */
+.pg-head{padding:20px 18px 14px;background:linear-gradient(to bottom,var(--c-green1),var(--c-surface));border-bottom:1px solid var(--c-border)}
+.pg-head h2{font-size:19px;font-weight:800}
+.pg-head p{font-size:12px;color:var(--c-muted);margin-top:3px}
+
+/* ── NURSE ACT BAR ── */
+.nurse-act-bar{display:none;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,200,120,.07);border-bottom:1px solid rgba(0,200,120,.2)}
+.edit-mode .nurse-act-bar{display:flex}
+.stab-editbar{display:none;align-items:center;gap:8px;padding:8px 16px;background:rgba(46,125,82,.05);border-bottom:1px solid var(--c-border)}
+.edit-mode .stab-editbar{display:flex}
+.stab-editbar span{font-size:12px;color:var(--c-muted);flex:1}
+
+/* ── CONTENT BLOCKS ── */
+.cb{padding:16px 18px;border-bottom:1px solid var(--c-border)}
+.cb:last-child{border-bottom:none}
+.edit-mode .cb{border-left:3px solid transparent;transition:border-color .15s}
+.edit-mode .cb:hover{border-left-color:var(--c-primary);background:#fafffe}
+.blk-toolbar{display:none;align-items:center;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.edit-mode .blk-toolbar{display:flex}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.3px}
+.pill-green{background:#e8f5e9;color:#2e7d32}
+.pill-blue{background:#e3f2fd;color:#1565c0}
+.pill-amber{background:#fff8e1;color:#f57f17}
+.pill-pink{background:#fce4ec;color:#c62828}
+.art-title{font-size:17px;font-weight:800;line-height:1.4;margin:9px 0 8px}
+.art-body{font-size:14px;color:#2d5a3d;line-height:2}
+.vid-wrap{border-radius:var(--r-md);overflow:hidden;margin-top:10px;box-shadow:var(--sh-sm)}
+.vid-frame{width:100%;aspect-ratio:16/9;border:none;display:block}
+.vid-label{font-size:14px;font-weight:700;margin-bottom:6px}
+.img-wrap{border-radius:var(--r-md);overflow:hidden;margin-top:10px;box-shadow:var(--sh-sm)}
+.img-wrap img{width:100%;display:block;object-fit:cover}
+.link-card{display:flex;align-items:center;gap:14px;padding:14px 16px;margin-top:10px;background:var(--c-green1);border-radius:var(--r-md);border:1.5px solid var(--c-border);color:var(--c-text);transition:var(--t)}
+.link-card:hover{border-color:var(--c-primary);background:#e0f4ea;transform:translateY(-1px)}
+.link-card .lc-icon{font-size:28px;flex-shrink:0}
+.link-card .lc-body{flex:1;min-width:0}
+.link-card .lc-title{font-size:14px;font-weight:700}
+.link-card .lc-url{font-size:11px;color:var(--c-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-card .lc-arr{color:var(--c-primary);font-size:18px;flex-shrink:0}
+
+/* ── SEARCH ── */
+.search-bar{padding:10px 14px;background:var(--c-surface);border-bottom:1px solid var(--c-border)}
+.search-input-wrap{display:flex;align-items:center;gap:10px;background:var(--c-green1);border-radius:100px;padding:10px 16px;border:2px solid var(--c-border);transition:var(--t)}
+.search-input-wrap:focus-within{border-color:var(--c-primary);background:#fff}
+.search-input-wrap span{font-size:16px;flex-shrink:0;color:var(--c-muted)}
+.search-input-wrap input{flex:1;border:none;background:transparent;outline:none;font-size:16px;color:var(--c-text)}
+.search-input-wrap input::placeholder{color:#a8c8b5}
+
+/* ── EMPTY ── */
+.sc-empty{text-align:center;padding:60px 24px}
+.sc-empty .em-illu{font-size:60px;display:block;margin-bottom:16px}
+.sc-empty h3{font-size:18px;font-weight:800;margin-bottom:8px}
+.sc-empty p{font-size:13px;color:var(--c-muted);line-height:1.7;max-width:280px;margin:0 auto}
+
+/* ── WELCOME ── */
+.welcome-screen{
+  position:fixed;inset:0;z-index:5000;
+  display:flex;flex-direction:column;
+  background:linear-gradient(160deg,var(--c-darker) 0%,#1a6b47 60%,#2d9e68 100%);
+  opacity:0;pointer-events:none;transition:opacity .4s;
+  padding-top:var(--safe-top);padding-bottom:var(--safe-bot);
+}
+.welcome-screen.show{opacity:1;pointer-events:all}
+.welcome-screen.hide{opacity:0;pointer-events:none}
+.ws-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;overflow-y:auto}
+.ws-logo{width:84px;height:84px;border-radius:24px;background:var(--c-accent);display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 24px;box-shadow:0 12px 40px rgba(0,200,120,.4);color:var(--c-darker)}
+.ws-title{font-size:30px;font-weight:900;color:#fff;margin-bottom:8px}
+.ws-sub{font-size:14px;color:rgba(255,255,255,.65);line-height:1.6;margin-bottom:36px;max-width:280px}
+.ws-features{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;margin-bottom:40px}
+.ws-feat{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.1);border-radius:var(--r-md);padding:14px 16px;text-align:left;border:1px solid rgba(255,255,255,.12)}
+.ws-feat .wf-icon{font-size:24px;flex-shrink:0}
+.wf-name{font-size:13px;font-weight:700;color:#fff}
+.wf-desc{font-size:11px;color:rgba(255,255,255,.55);margin-top:1px}
+.ws-footer{padding:0 28px calc(20px + var(--safe-bot));width:100%}
+
+/* ── CHAT ── */
+.chat-shell{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.chat-bot-header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,var(--c-dark),#1a6b47);flex-shrink:0}
+.chat-bot-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);border:2.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.chat-bot-name{font-size:16px;font-weight:800;color:#fff}
+.chat-bot-status{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7);font-weight:600;margin-top:2px}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--c-accent);animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px;display:flex;flex-direction:column;gap:12px;background:#f4fbf7}
+.chat-row{display:flex;gap:8px;align-items:flex-end;animation:msg-in .22s cubic-bezier(.4,0,.2,1)}
+@keyframes msg-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.chat-row.me{flex-direction:row-reverse}
+.ch-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.chat-row.bot .ch-av{background:linear-gradient(135deg,var(--c-primary),var(--c-accent));color:#fff}
+.chat-row.me .ch-av{background:var(--c-dark);color:#fff;font-size:11px;font-weight:800}
+.chat-row .msg-wrap{display:flex;flex-direction:column;max-width:78%}
+.chat-row.me .msg-wrap{align-items:flex-end}
+.bubble{padding:11px 15px;font-size:14px;line-height:1.7;border-radius:18px;word-break:break-word}
+.chat-row.bot .bubble{background:#fff;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.chat-row.me .bubble{background:linear-gradient(135deg,var(--c-primary),#388e3c);color:#fff;border-bottom-right-radius:4px}
+.ch-time{font-size:10px;color:var(--c-muted);padding:0 5px;margin-top:4px}
+.chat-date-div{text-align:center;font-size:11px;color:var(--c-muted);font-weight:600;display:flex;align-items:center;gap:10px;margin:4px 0}
+.chat-date-div::before,.chat-date-div::after{content:'';flex:1;height:1px;background:var(--c-border)}
+.quick-replies{display:flex;flex-wrap:wrap;gap:7px;padding:10px 14px 6px;background:#f4fbf7;border-top:1px solid var(--c-border);flex-shrink:0}
+.qr-chip{padding:8px 14px;border-radius:100px;border:1.5px solid var(--c-primary);font-size:12px;font-weight:600;color:var(--c-primary);background:#fff;cursor:pointer;transition:var(--t);white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis;min-height:36px}
+.qr-chip:hover{background:var(--c-primary);color:#fff}
+.chat-input-area{padding:10px 14px;border-top:1px solid var(--c-border);background:var(--c-surface);display:flex;gap:10px;align-items:center;flex-shrink:0}
+.chat-input{flex:1;padding:12px 18px;border:2px solid var(--c-border);border-radius:100px;font-size:16px;background:var(--c-green1);outline:none;transition:var(--t);-webkit-appearance:none}
+.chat-input:focus{border-color:var(--c-primary);background:var(--c-surface)}
+.chat-input::placeholder{color:#a8c8b5}
+.chat-send{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--c-primary),#388e3c);color:#fff;border:none;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 14px rgba(46,125,82,.4);transition:var(--t)}
+.chat-send:active{transform:scale(.93)}
+.typing-dots{display:flex;gap:5px;padding:3px 2px}
+.typing-dots span{width:8px;height:8px;border-radius:50%;background:var(--c-primary);animation:dot-bounce 1.4s infinite;opacity:.45}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-7px);opacity:1}}
+.chatbase-frame{width:100%;flex:1;border:none;display:block;min-height:0}
+
+/* ── NURSE BOT CFG ── */
+.cfg-mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.cfg-mode-opt{border:2px solid var(--c-border);border-radius:var(--r-md);padding:14px 12px;text-align:center;cursor:pointer;transition:var(--t)}
+.cfg-mode-opt:hover,.cfg-mode-opt.on{border-color:var(--c-primary);background:var(--c-green1)}
+.cfg-mode-opt .mo-i{font-size:24px;margin-bottom:5px}
+.cfg-mode-opt .mo-n{font-size:12px;font-weight:700}
+.cfg-mode-opt .mo-d{font-size:11px;color:var(--c-muted);margin-top:2px}
+.info-box{background:var(--c-green1);border-radius:var(--r-sm);padding:12px 14px;font-size:12px;line-height:1.7;color:var(--c-muted);margin-bottom:14px;border-left:3px solid var(--c-primary)}
+.info-box b{color:var(--c-text)}
+code{background:rgba(46,125,82,.12);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--c-primary)}
+.qa-card{display:flex;gap:10px;align-items:flex-start;background:var(--c-green1);border-radius:var(--r-sm);padding:13px 14px;margin-bottom:8px;border:1px solid var(--c-border)}
+.qa-num{width:24px;height:24px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.qa-q{font-size:13px;font-weight:700;margin-bottom:4px}
+.qa-a{font-size:12px;color:var(--c-muted);line-height:1.5}
+
+/* ── TYPE PICKER ── */
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.type-opt{border:2px solid var(--c-border);border-radius:var(--r-sm);padding:12px 8px;text-align:center;cursor:pointer;transition:var(--t);min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.type-opt:hover,.type-opt.on{border-color:var(--c-primary);background:var(--c-green1)}
+.type-opt .to-i{font-size:22px;margin-bottom:4px}
+.type-opt .to-n{font-size:11px;font-weight:700}
+
+/* ── PREVIEW PHONE ── */
+.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);z-index:4000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.preview-overlay.open{opacity:1;pointer-events:all}
+.preview-phone{width:320px;height:90dvh;max-height:720px;border-radius:40px;overflow:hidden;box-shadow:0 0 0 10px #1a1a1a,0 40px 100px rgba(0,0,0,.6);background:var(--c-surface);display:flex;flex-direction:column;position:relative}
+.preview-notch{background:#111;height:32px;border-radius:0 0 16px 16px;width:110px;margin:0 auto}
+.preview-body{flex:1;overflow-y:auto}
+.preview-close-btn{position:absolute;top:-16px;right:-16px;width:40px;height:40px;border-radius:50%;background:#fff;color:var(--c-text);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;box-shadow:var(--sh-md);border:none}
+
+/* ── GEAR FAB ── */
+.fab-gear{
+  position:absolute;
+  bottom:calc(68px + var(--safe-bot));right:16px;
+  width:48px;height:48px;border-radius:50%;
+  background:var(--c-darker);color:rgba(255,255,255,.7);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;cursor:pointer;border:none;
+  box-shadow:var(--sh-md);z-index:200;transition:var(--t);
+}
+.fab-gear:active{transform:scale(.92)}
+
+/* ── TOAST ── */
+#sc-toast{position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:9999;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+.sc-toast{display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:100px;font-size:13px;font-weight:600;box-shadow:var(--sh-lg);animation:toast-in .3s cubic-bezier(.4,0,.2,1)}
+.sc-toast.success{background:var(--c-dark);color:#fff;border-left:3px solid var(--c-accent)}
+.sc-toast.error{background:var(--c-error);color:#fff}
+.sc-toast.info{background:var(--c-darker);color:#fff}
+@keyframes toast-in{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+@keyframes toast-out{to{transform:translateY(20px);opacity:0}}
+
+/* ── MISC ── */
+.divider{height:1px;background:var(--c-border);margin:16px 0}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-head h3{font-size:14px;font-weight:800}
+.text-muted{color:var(--c-muted)}
+.text-sm{font-size:13px}
+.mt-2{margin-top:8px}
+.p-4{padding:16px}
+</style>
+</head>
+<body>
+
+<!-- ════ LOADING ════ -->
+<div class="loading-screen" id="loading-screen">
+  <div class="ls-logo">＋</div>
+  <div class="ls-title">Smart Care</div>
+  <div class="ls-spin"></div>
+  <div class="ls-msg" id="ls-msg">กำลังเชื่อมต่อ...</div>
+</div>
+
+<!-- ════ WELCOME ════ -->
+<div class="welcome-screen" id="welcome-screen">
+  <div class="ws-body">
+    <div class="ws-logo">＋</div>
+    <div class="ws-title">Smart Care</div>
+    <div class="ws-sub">ระบบสื่อสารผู้ป่วย<br>อัปเดตข้อมูลแบบ Real-time</div>
+    <div class="ws-features">
+      <div class="ws-feat"><span class="wf-icon">📋</span><div><div class="wf-name">เนื้อหาสุขภาพ</div><div class="wf-desc">บทความ วิดีโอ รูปภาพ ลิงก์</div></div></div>
+      <div class="ws-feat"><span class="wf-icon">🔄</span><div><div class="wf-name">อัปเดตทันที</div><div class="wf-desc">พยาบาลแก้ไข ทุกหน้าจอเห็นพร้อมกัน</div></div></div>
+      <div class="ws-feat"><span class="wf-icon">🤖</span><div><div class="wf-name">แชทบอท 24 ชม.</div><div class="wf-desc">ตอบคำถามได้ตลอดเวลา</div></div></div>
+    </div>
+  </div>
+  <div class="ws-footer">
+    <button class="btn btn-accent w-full" style="padding:16px;font-size:16px;border-radius:var(--r-md)" onclick="enterApp()">เริ่มใช้งาน →</button>
+  </div>
+</div>
+
+<!-- ════ SHELL ════ -->
+<div class="sc-shell" id="shell">
+  <header class="sc-appbar">
+    <div class="sc-logo">
+      <div class="logo-mark">＋</div>
+      <div class="logo-text">Smart Care<span>ระบบสื่อสารผู้ป่วย</span></div>
+    </div>
+    <div class="appbar-right">
+      <div class="sync-dot" id="sync-dot" title="เชื่อมต่อ"></div>
+      <button class="btn btn-light btn-sm" id="btn-preview" style="display:none" onclick="openPreview()">👁 ตัวอย่าง</button>
+      <button class="btn btn-ghost btn-sm" id="btn-exit" style="display:none" onclick="exitEdit()">← ออก</button>
+    </div>
+  </header>
+
+  <div class="nurse-banner" id="nurse-banner">⚙ โหมดแก้ไข — พยาบาล</div>
+
+  <div class="nurse-toolbar" id="nurse-toolbar">
+    <span class="nt-label">แท็บ</span>
+    <div class="nt-sep"></div>
+    <div id="nt-tabs" style="display:flex;gap:7px"></div>
+    <div class="nt-add" onclick="openAddTab()">＋ แท็บ</div>
+  </div>
+
+  <div class="sc-body" id="sc-body"></div>
+  <nav class="sc-nav" id="sc-nav"></nav>
+  <button class="fab-gear" id="fab-gear" onclick="gearClick()">⚙</button>
+</div>
+
+<!-- ════ PREVIEW ════ -->
+<div class="preview-overlay" id="preview-overlay">
+  <div style="position:absolute;inset:0" onclick="closePreview()"></div>
+  <div style="position:relative">
+    <div class="preview-phone">
+      <div class="preview-notch"></div>
+      <div class="preview-body" id="preview-body"></div>
+    </div>
+    <button class="preview-close-btn" onclick="closePreview()">✕</button>
+  </div>
+</div>
+
+<!-- ════ MODALS ════ -->
+
+<!-- Firebase Setup -->
+<div class="overlay" id="m-setup">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span class="sheet-title">🔧 ตั้งค่า Firebase</span>
+    </div>
+    <div class="sheet-body">
+      <div class="setup-card">
+        <div style="font-size:13px;font-weight:700;color:var(--c-dark);margin-bottom:12px">📋 ขั้นตอนสร้าง Firebase (ฟรี)</div>
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-txt">ไปที่ <b>console.firebase.google.com</b> → <b>Add project</b></div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-txt">สร้างโปรเจกต์ → <b>Build → Realtime Database</b> → Create database → เลือก <b>Start in test mode</b></div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-txt">ไปที่ <b>Project Settings ⚙</b> → เลื่อนลงหา <b>Your apps</b> → กด <b>&lt;/&gt; Web</b> → Register app → คัดลอก <code>firebaseConfig</code></div>
+        </div>
+        <div class="setup-step" style="margin-bottom:0">
+          <div class="step-num">4</div>
+          <div class="step-txt">วางข้อมูล JSON ด้านล่าง</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Firebase Config (JSON)</label>
+        <textarea class="form-input" id="fb-cfg-input" rows="8" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "xxx.firebaseapp.com",
+  "databaseURL": "https://xxx-default-rtdb.firebaseio.com",
+  "projectId": "xxx",
+  "storageBucket": "xxx.appspot.com",
+  "messagingSenderId": "123456",
+  "appId": "1:123..."
+}'></textarea>
+      </div>
+      <p class="text-sm text-muted" style="line-height:1.6;margin-bottom:0">⚠️ ต้องมี <b>databaseURL</b> ด้วย หากไม่มีให้ไปเพิ่ม Realtime Database ใน Firebase ก่อน</p>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-primary w-full" onclick="saveFirebaseConfig()">เชื่อมต่อ Firebase →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nurse Pass -->
+<div class="overlay" id="m-pass">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span class="sheet-title" id="mp-title">โหมดพยาบาล</span>
+      <button class="btn btn-ghost btn-ico" onclick="cm('m-pass')">✕</button>
+    </div>
+    <div class="sheet-body" id="mp-body">
+      <div class="form-group">
+        <label class="form-label">รหัสผ่านองค์กร</label>
+        <input class="form-input" type="password" id="mp-pass" onkeydown="if(event.key==='Enter')doNurseAuth()">
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-ghost" onclick="cm('m-pass')">ยกเลิก</button>
+      <button class="btn btn-dark" id="mp-ok" onclick="doNurseAuth()">เข้าโหมดแก้ไข</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Tab -->
+<div class="overlay" id="m-tab">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><span class="sheet-title" id="mt-title">เพิ่มแท็บ</span><button class="btn btn-ghost btn-ico" onclick="cm('m-tab')">✕</button></div>
+    <div class="sheet-body">
+      <div style="display:grid;grid-template-columns:1fr 70px;gap:10px">
+        <div class="form-group"><label class="form-label">ชื่อแท็บ</label><input class="form-input" id="t-name" placeholder="เช่น บทความสุขภาพ"></div>
+        <div class="form-group"><label class="form-label">ไอคอน</label><input class="form-input" id="t-icon" placeholder="🏥" maxlength="4" style="text-align:center"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ประเภท</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+          <div class="type-opt on" data-type="content" onclick="pickTT(this)"><div class="to-i">📄</div><div class="to-n">บทความ / วิดีโอ</div></div>
+          <div class="type-opt" data-type="chatbot" onclick="pickTT(this)"><div class="to-i">🤖</div><div class="to-n">แชทบอท</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-ghost" onclick="cm('m-tab')">ยกเลิก</button><button class="btn btn-primary" id="btn-save-tab" onclick="saveTab()">บันทึก</button></div>
+  </div>
+</div>
+
+<!-- Add Sub-tab -->
+<div class="overlay" id="m-stab">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><span class="sheet-title" id="mst-title">เพิ่มหมวดย่อย</span><button class="btn btn-ghost btn-ico" onclick="cm('m-stab')">✕</button></div>
+    <div class="sheet-body">
+      <div style="display:grid;grid-template-columns:1fr 66px;gap:10px">
+        <div class="form-group"><label class="form-label">ชื่อหมวด</label><input class="form-input" id="st-name" placeholder="เช่น หลังผ่าตัด"></div>
+        <div class="form-group"><label class="form-label">ไอคอน</label><input class="form-input" id="st-icon" placeholder="💊" maxlength="4" style="text-align:center"></div>
+      </div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-ghost" onclick="cm('m-stab')">ยกเลิก</button><button class="btn btn-primary" onclick="saveSubTab()">บันทึก</button></div>
+  </div>
+</div>
+
+<!-- Add/Edit Block -->
+<div class="overlay" id="m-block">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><span class="sheet-title" id="mb-title">เพิ่มเนื้อหา</span><button class="btn btn-ghost btn-ico" onclick="cm('m-block')">✕</button></div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-label">ประเภทเนื้อหา</label>
+        <div class="type-grid" id="blk-type-grid">
+          <div class="type-opt on" data-t="article" onclick="pickBT(this)"><div class="to-i">📝</div><div class="to-n">บทความ</div></div>
+          <div class="type-opt" data-t="youtube" onclick="pickBT(this)"><div class="to-i">🎬</div><div class="to-n">YouTube</div></div>
+          <div class="type-opt" data-t="image" onclick="pickBT(this)"><div class="to-i">🖼️</div><div class="to-n">รูปภาพ</div></div>
+          <div class="type-opt" data-t="link" onclick="pickBT(this)"><div class="to-i">🔗</div><div class="to-n">ลิงก์</div></div>
+          <div class="type-opt" data-t="pdf" onclick="pickBT(this)"><div class="to-i">📄</div><div class="to-n">PDF/ไฟล์</div></div>
+        </div>
+      </div>
+      <div id="blk-fields"></div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-ghost" onclick="cm('m-block')">ยกเลิก</button><button class="btn btn-primary" onclick="saveBlock()">บันทึก</button></div>
+  </div>
+</div>
+
+<!-- Add Q&A -->
+<div class="overlay" id="m-qa">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><span class="sheet-title">เพิ่ม Q&amp;A</span><button class="btn btn-ghost btn-ico" onclick="cm('m-qa')">✕</button></div>
+    <div class="sheet-body">
+      <div class="info-box">บอทจะค้นหา <b>คีย์เวิร์ด</b>ที่ผู้ป่วยพิมพ์ คั่นแต่ละคำด้วย <b>,</b></div>
+      <div class="form-group"><label class="form-label">คำถาม / คีย์เวิร์ด</label><input class="form-input" id="qa-q" placeholder="เช่น ปวดหัว, วิธีกินยา, แผล"></div>
+      <div class="form-group"><label class="form-label">คำตอบของบอท</label><textarea class="form-input" id="qa-a" rows="4" placeholder="พิมพ์คำตอบ..."></textarea></div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-ghost" onclick="cm('m-qa')">ยกเลิก</button><button class="btn btn-primary" onclick="saveQA()">เพิ่ม Q&amp;A</button></div>
+  </div>
+</div>
+
+<!-- Bot Settings -->
+<div class="overlay" id="m-bot">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><span class="sheet-title">⚙️ ตั้งค่าบอท</span><button class="btn btn-ghost btn-ico" onclick="cm('m-bot')">✕</button></div>
+    <div class="sheet-body">
+      <div class="form-group"><label class="form-label">ชื่อบอท</label><input class="form-input" id="bn-name" placeholder="Smart Bot"></div>
+      <div class="form-group"><label class="form-label">ข้อความทักทาย</label><textarea class="form-input" id="bn-greet" rows="3"></textarea></div>
+      <div class="form-group"><label class="form-label">เมื่อตอบไม่ได้</label><textarea class="form-input" id="bn-fall" rows="3"></textarea></div>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-ghost" onclick="cm('m-bot')">ยกเลิก</button><button class="btn btn-primary" onclick="saveBotCfg()">บันทึก</button></div>
+  </div>
+</div>
+
+<div id="sc-toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   FIREBASE + DATA LAYER
+════════════════════════════════════════ */
+const FB_CFG_KEY = 'sc_firebase_cfg';
+const SC_PATH    = 'smartcare';
+
+let _db   = null;   // Firebase database instance
+let _data = null;   // In-memory cache (latest from Firebase)
+let _listener = null;
+
+function df(){
+  return {
+    pass:'', tabs:[], firstVisit:true,
+    bot:{
+      name:'Smart Bot',
+      greeting:'สวัสดีครับ! 😊 ผม Smart Bot ยินดีช่วยตอบคำถามด้านสุขภาพ\nถามได้เลยนะครับ',
+      fallback:'ขออภัยครับ ไม่พบข้อมูลที่ตรงกับคำถาม\nกรุณาติดต่อพยาบาลโดยตรงครับ 🙏',
+      qa:[]
+    }
+  };
+}
+
+// ld() — อ่านจาก cache (sync)
+function ld(){ return JSON.parse(JSON.stringify(_data || df())); }
+
+// sv() — เขียนไป Firebase (async) + อัปเดต cache
+function sv(d){
+  _data = d;
+  if(_db){
+    _db.ref(SC_PATH).set(d).catch(e=>{
+      console.error('Firebase write error:', e);
+      toast('บันทึกไม่สำเร็จ ตรวจสอบการเชื่อมต่อ','error');
+    });
+  }
+}
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+/* ── Firebase Init ── */
+function getStoredConfig(){
+  try{ return JSON.parse(localStorage.getItem(FB_CFG_KEY)); }
+  catch{ return null; }
+}
+
+function initFirebase(cfg){
+  try{
+    // Avoid re-init
+    if(firebase.apps.length) firebase.apps.forEach(a=>a.delete());
+    firebase.initializeApp(cfg);
+    _db = firebase.database();
+
+    // Real-time listener
+    _listener = _db.ref(SC_PATH).on('value', snap=>{
+      const val = snap.val();
+      if(val){
+        _data = val;
+      } else {
+        // First time — ไม่มีข้อมูลใน Firebase เลย
+        _data = df();
+        _db.ref(SC_PATH).set(_data); // init
+      }
+      hideLoading();
+      onDataUpdate();
+    }, err=>{
+      console.error('Firebase read error:', err);
+      document.getElementById('ls-msg').textContent='เชื่อมต่อไม่ได้ (' + err.code + ')';
+      setSyncStatus(false);
+    });
+
+    // Connection state
+    _db.ref('.info/connected').on('value', snap=>{
+      setSyncStatus(snap.val() === true);
+    });
+
+    return true;
+  } catch(e){
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+function setSyncStatus(online){
+  const dot = document.getElementById('sync-dot');
+  if(!dot) return;
+  if(online){ dot.classList.remove('offline'); dot.title='เชื่อมต่อแล้ว'; }
+  else { dot.classList.add('offline'); dot.title='ออฟไลน์'; }
+}
+
+/* ── Firebase Setup Modal ── */
+function saveFirebaseConfig(){
+  let raw = document.getElementById('fb-cfg-input').value.trim();
+  let cfg;
+  try{
+    // ลบ comment และ whitespace พิเศษ
+    let cleaned = raw
+      .replace(/\/\/[^\n]*/g,'')   // ลบ // comments
+      .replace(/\/\*[\s\S]*?\*\//g,'') // ลบ /* */ comments
+      .replace(/[‘’]/g,"'")  // smart single quotes
+      .replace(/[“”]/g,'"')  // smart double quotes
+      .replace(/,(\s*[}\]])/g,'$1')    // trailing commas
+      .trim();
+
+    // ถ้าไม่ได้ wrap ด้วย {} ให้เพิ่มให้
+    if(!cleaned.startsWith('{')) cleaned = '{' + cleaned + '}';
+
+    // แปลง JS object keys เป็น JSON keys (apiKey: → "apiKey":)
+    cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
+
+    cfg = JSON.parse(cleaned);
+  } catch(e){
+    // ลอง parse แบบ eval-safe อีกครั้ง
+    try{
+      const keys=['apiKey','authDomain','databaseURL','projectId','storageBucket','messagingSenderId','appId','measurementId'];
+      cfg = {};
+      keys.forEach(k=>{
+        const m = raw.match(new RegExp(k+'\\s*[=:]\\s*["\']([^"\']+)["\']'));
+        if(m) cfg[k] = m[1];
+      });
+      if(!cfg.apiKey) throw new Error('parse failed');
+    } catch(e2){
+      toast('วาง JSON ไม่ถูกต้อง ลองดูตัวอย่างด้านล่าง','error');
+      return;
+    }
+  }
+  if(!cfg.databaseURL){
+    toast('ไม่พบ databaseURL — ตรวจสอบว่าสร้าง Realtime Database แล้ว','error');
+    return;
+  }
+  localStorage.setItem(FB_CFG_KEY, JSON.stringify(cfg));
+  cm('m-setup');
+  showLoading('กำลังเชื่อมต่อ Firebase...');
+  const ok = initFirebase(cfg);
+  if(!ok) toast('เชื่อมต่อ Firebase ไม่สำเร็จ','error');
+}
+
+/* ─── Called every time Firebase data changes ─── */
+function onDataUpdate(){
+  if(nurse){
+    // พยาบาลอยู่ในโหมดแก้ไข — รีเฟรชเฉพาะ nav toolbar แต่ไม่แทรก content ที่กำลังแก้
+    renderNurseToolbar();
+  } else {
+    renderNav();
+    renderBody();
+  }
+}
+
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let nurse=false;
+let activeTab=null, activeSubTab=null;
+let editTabId=null, editSubTabId=null, editBlkId=null;
+let selTabType='content', selBlkType='article';
+
+/* ════════════════════════════════════════
+   BOOT
+════════════════════════════════════════ */
+// ===== Firebase Config (ตั้งค่าไว้แล้ว) =====
+const HARDCODED_CFG = {
+  apiKey: "AIzaSyCFfn2iRcpeELLQTjPFkBMwT3Tpp09p7Hg",
+  authDomain: "smartcare-68100.firebaseapp.com",
+  databaseURL: "https://smartcare-68100-default-rtdb.firebaseio.com",
+  projectId: "smartcare-68100",
+  storageBucket: "smartcare-68100.firebasestorage.app",
+  messagingSenderId: "487058061775",
+  appId: "1:487058061775:web:5ddd8b6d0319b9bf277aba"
+};
+
+document.addEventListener('DOMContentLoaded',()=>{
+  showBlkFields('article');
+  // ใช้ config ที่ตั้งไว้เลย ไม่ต้องให้ user กรอก
+  localStorage.setItem(FB_CFG_KEY, JSON.stringify(HARDCODED_CFG));
+  showLoading('กำลังเชื่อมต่อ Firebase...');
+  initFirebase(HARDCODED_CFG);
+});
+
+function showLoading(msg){
+  document.getElementById('ls-msg').textContent = msg||'กำลังโหลด...';
+  document.getElementById('loading-screen').classList.remove('hide');
+}
+function hideLoading(){
+  const ls = document.getElementById('loading-screen');
+  ls.classList.add('hide');
+  setTimeout(()=>ls.style.display='none', 500);
+
+  // แสดง welcome screen ครั้งแรก
+  if(_data && _data.firstVisit){
+    document.getElementById('welcome-screen').classList.add('show');
+  }
+  // ถ้าไม่ใช่ครั้งแรก init tab แล้ว render
+  if(_data && !_data.firstVisit){
+    initTabState();
+    renderNav();
+    renderBody();
+  }
+}
+
+function initTabState(){
+  const tabs = (_data||df()).tabs;
+  if(tabs.length && !activeTab){
+    activeTab=tabs[0].id;
+    activeSubTab=tabs[0].subtabs?.[0]?.id||null;
+  }
+}
+
+function enterApp(){
+  const d=ld(); d.firstVisit=false; sv(d);
+  const ws=document.getElementById('welcome-screen');
+  ws.classList.add('hide');
+  setTimeout(()=>ws.style.display='none',400);
+  initTabState();
+  renderNav(); renderBody();
+}
+
+/* ════════════════════════════════════════
+   GEAR / AUTH
+════════════════════════════════════════ */
+function gearClick(){
+  if(nurse){exitEdit();return;}
+  const d=ld();
+  if(!d.pass){
+    document.getElementById('mp-title').textContent='ตั้งรหัสผ่านองค์กร';
+    document.getElementById('mp-body').innerHTML=`
+      <p class="text-sm text-muted" style="margin-bottom:14px;line-height:1.7">รหัสผ่านนี้จะใช้ร่วมกันทุกเครื่องในองค์กร (ขั้นต่ำ 4 ตัว)</p>
+      <div class="form-group"><label class="form-label">รหัสผ่านใหม่</label><input class="form-input" type="password" id="mp-pass" placeholder="ตั้งรหัสผ่าน"></div>
+      <div class="form-group"><label class="form-label">ยืนยันรหัสผ่าน</label><input class="form-input" type="password" id="mp-pass2" placeholder="พิมพ์อีกครั้ง"></div>`;
+    document.getElementById('mp-ok').textContent='ตั้งรหัสผ่าน';
+    document.getElementById('mp-ok').onclick=doSetup;
+  } else {
+    document.getElementById('mp-title').textContent='เข้าโหมดพยาบาล';
+    document.getElementById('mp-body').innerHTML=`<div class="form-group"><label class="form-label">รหัสผ่านองค์กร</label><input class="form-input" type="password" id="mp-pass" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter')doNurseAuth()"></div>`;
+    document.getElementById('mp-ok').textContent='เข้าโหมดแก้ไข';
+    document.getElementById('mp-ok').onclick=doNurseAuth;
+  }
+  om('m-pass');
+  setTimeout(()=>document.getElementById('mp-pass')?.focus(),300);
+}
+function doSetup(){
+  const p1=document.getElementById('mp-pass').value;
+  const p2=document.getElementById('mp-pass2')?.value;
+  if(p1.length<4)return toast('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร','error');
+  if(p2!==undefined&&p1!==p2)return toast('รหัสผ่านไม่ตรงกัน','error');
+  const d=ld(); d.pass=p1; sv(d);
+  cm('m-pass'); toast('ตั้งรหัสผ่านสำเร็จ ✓','success'); enterEdit();
+}
+function doNurseAuth(){
+  const p=document.getElementById('mp-pass').value;
+  if(p!==ld().pass)return toast('รหัสผ่านไม่ถูกต้อง','error');
+  cm('m-pass'); enterEdit();
+}
+function enterEdit(){
+  nurse=true;
+  document.getElementById('shell').classList.add('edit-mode');
+  document.getElementById('nurse-banner').classList.add('on');
+  document.getElementById('nurse-toolbar').classList.add('on');
+  document.getElementById('sc-nav').style.display='none';
+  document.getElementById('btn-preview').style.display='';
+  document.getElementById('btn-exit').style.display='';
+  const g=document.getElementById('fab-gear');
+  g.style.background='#d32f2f'; g.style.color='#fff';
+  g.style.bottom='calc(16px + var(--safe-bot))';
+  g.textContent='✕';
+  renderNurseToolbar(); renderBody();
+}
+function exitEdit(){
+  nurse=false;
+  document.getElementById('shell').classList.remove('edit-mode');
+  document.getElementById('nurse-banner').classList.remove('on');
+  document.getElementById('nurse-toolbar').classList.remove('on');
+  document.getElementById('sc-nav').style.display='';
+  document.getElementById('btn-preview').style.display='none';
+  document.getElementById('btn-exit').style.display='none';
+  const g=document.getElementById('fab-gear');
+  g.style.background=''; g.style.color=''; g.style.bottom='';
+  g.textContent='⚙';
+  renderNav(); renderBody();
+}
+
+/* ════════════════════════════════════════
+   NURSE TOOLBAR
+════════════════════════════════════════ */
+function renderNurseToolbar(){
+  const tabs=ld().tabs;
+  document.getElementById('nt-tabs').innerHTML=tabs.map(t=>`
+    <div class="nt-tab-chip ${t.id===activeTab?'on':''}" onclick="setTab('${t.id}')">
+      ${t.icon||iconOf(t.type)} ${esc(t.name)}
+      <span class="tc-edit" onclick="event.stopPropagation();openEditTab('${t.id}')">✏</span>
+      <span class="tc-edit" onclick="event.stopPropagation();delTab('${t.id}')">✕</span>
+    </div>`).join('');
+  document.querySelector('.nt-add').style.display=tabs.length>=4?'none':'';
+}
+
+/* ════════════════════════════════════════
+   NAV
+════════════════════════════════════════ */
+function renderNav(){
+  const tabs=ld().tabs;
+  document.getElementById('sc-nav').innerHTML=tabs.map(t=>`
+    <button class="sc-nav-btn ${t.id===activeTab?'on':''}" onclick="setTab('${t.id}')">
+      <span class="nb-icon">${t.icon||iconOf(t.type)}</span>
+      <span class="nb-label">${esc(t.name)}</span>
+    </button>`).join('');
+}
+function iconOf(t){return{content:'📋',chatbot:'🤖'}[t]||'📌'}
+
+/* ════════════════════════════════════════
+   ROUTING
+════════════════════════════════════════ */
+function setTab(id){
+  activeTab=id;
+  const t=ld().tabs.find(x=>x.id===id);
+  activeSubTab=t?.subtabs?.[0]?.id||null;
+  if(nurse)renderNurseToolbar();else renderNav();
+  renderBody();
+}
+function setSubTab(id){activeSubTab=id;renderBody();}
+
+function renderBody(){
+  const body=document.getElementById('sc-body');
+  body.style.display=''; body.style.flexDirection=''; body.style.padding='';
+  const tab=ld().tabs.find(t=>t.id===activeTab);
+  if(!tab){
+    body.innerHTML=nurse
+      ?`<div class="sc-empty"><span class="em-illu">➕</span><h3>เริ่มสร้างเนื้อหา</h3><p>กด "+ แท็บ" ด้านบนเพื่อเพิ่มแท็บแรก</p></div>`
+      :`<div class="sc-empty"><span class="em-illu">🌿</span><h3>ยังไม่มีเนื้อหา</h3><p>พยาบาลกำลังเตรียมข้อมูลสำหรับคุณ</p></div>`;
+    return;
+  }
+  if(tab.type==='chatbot')return renderChatTab(tab);
+  renderContentTab(tab);
+}
+
+/* ════════════════════════════════════════
+   CONTENT TAB
+════════════════════════════════════════ */
+function renderContentTab(tab){
+  const subtabs=tab.subtabs||[];
+  const st=subtabs.find(s=>s.id===activeSubTab)||subtabs[0];
+  if(st&&!activeSubTab)activeSubTab=st.id;
+
+  const nurseBar=nurse?`
+    <div class="nurse-act-bar">
+      <div style="font-size:12px;font-weight:700;color:var(--c-primary)">✏ ${esc(tab.name)}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="openAddBlock()">＋ เนื้อหา</button>
+        <button class="btn btn-light btn-sm" onclick="openAddSubTab()">＋ หมวด</button>
+      </div>
+    </div>`:'';
+
+  const subTabBar=subtabs.length>1?`
+    <div class="sc-subtabs">
+      ${subtabs.map(s=>`<button class="sc-stab ${s.id===activeSubTab?'on':''}" onclick="setSubTab('${s.id}')">${s.icon||''} ${esc(s.name)}</button>`).join('')}
+    </div>`:'';
+
+  const stEditBar=nurse&&st?`
+    <div class="stab-editbar">
+      <span>${st.icon||''} <b>${esc(st.name)}</b></span>
+      <button class="btn btn-ghost btn-xs" onclick="openEditSubTab('${st.id}')">✏ แก้ไข</button>
+      ${subtabs.length>1?`<button class="btn btn-danger btn-xs" onclick="delSubTab('${st.id}')">ลบหมวด</button>`:''}
+    </div>`:'';
+
+  const searchBar=!nurse?`
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span>🔍</span>
+        <input placeholder="ค้นหาเนื้อหา..." oninput="filterBlocks(this.value,'${st?.id||''}')">
+      </div>
+    </div>`:'';
+
+  const blocks=st?.blocks||[];
+  const blocksHtml=blocks.length
+    ?blocks.map((b,i)=>renderBlock(b,i,st?.id)).join('')
+    :nurse
+      ?`<div class="sc-empty"><span class="em-illu">📭</span><h3>ยังไม่มีเนื้อหา</h3><p>กด "＋ เนื้อหา" เพื่อเริ่มเพิ่ม</p></div>`
+      :`<div class="sc-empty"><span class="em-illu">🔧</span><h3>กำลังปรับปรุง</h3><p>เจ้าหน้าที่กำลังเตรียมข้อมูล</p></div>`;
+
+  document.getElementById('sc-body').innerHTML=`
+    <div class="pg-head"><h2>${tab.icon||''} ${esc(tab.name)}</h2></div>
+    ${nurseBar}${subTabBar}${stEditBar}${searchBar}
+    <div id="blocks-wrap">${blocksHtml}</div>`;
+}
+
+function filterBlocks(q,stId){
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  const st=tab?.subtabs?.find(s=>s.id===stId)||tab?.subtabs?.[0];
+  const blocks=st?.blocks||[];
+  const lq=q.toLowerCase();
+  const filtered=q?blocks.filter(b=>(b.title||'').toLowerCase().includes(lq)||(b.body||'').toLowerCase().includes(lq)):blocks;
+  document.getElementById('blocks-wrap').innerHTML=filtered.length
+    ?filtered.map((b,i)=>renderBlock(b,i,st?.id)).join('')
+    :`<div class="sc-empty"><span class="em-illu">🔍</span><h3>ไม่พบผลลัพธ์</h3><p>ลองค้นหาด้วยคำอื่น</p></div>`;
+}
+
+function renderBlock(b,i,stId){
+  const toolbar=nurse&&stId?`
+    <div class="blk-toolbar">
+      <span style="font-size:11px;font-weight:700;color:var(--c-muted)">#${i+1}</span>
+      <button class="btn btn-ghost btn-xs" onclick="openEditBlock('${stId}',${i})">✏ แก้ไข</button>
+      <button class="btn btn-ghost btn-xs" onclick="moveBlk('${stId}',${i},-1)">↑</button>
+      <button class="btn btn-ghost btn-xs" onclick="moveBlk('${stId}',${i},1)">↓</button>
+      <button class="btn btn-danger btn-xs" onclick="delBlk('${stId}',${i})">🗑 ลบ</button>
+    </div>`:'';
+
+  if(b.type==='article')return`<div class="cb">${toolbar}<span class="pill pill-green">📝 บทความ</span>${b.title?`<div class="art-title">${esc(b.title)}</div>`:''}${b.body?`<div class="art-body">${esc(b.body).replace(/\n/g,'<br>')}</div>`:''}</div>`;
+  if(b.type==='youtube')return`<div class="cb">${toolbar}<div class="vid-label">🎬 ${esc(b.title||'วิดีโอ')}</div><div class="vid-wrap"><iframe class="vid-frame" src="https://www.youtube.com/embed/${b.ytId}?rel=0" allowfullscreen></iframe></div></div>`;
+  if(b.type==='image')return`<div class="cb">${toolbar}<span class="pill pill-blue">🖼️ รูปภาพ</span>${b.title?`<div class="art-title" style="font-size:15px">${esc(b.title)}</div>`:''}<div class="img-wrap mt-2"><img src="${esc(b.url)}" alt="${esc(b.title)}" onerror="this.parentNode.innerHTML='<div style=padding:20px;color:var(--c-muted);font-size:13px;text-align:center>ไม่พบรูปภาพ</div>'"></div></div>`;
+  if(b.type==='link')return`<div class="cb">${toolbar}<span class="pill pill-amber">🔗 ลิงก์</span><a class="link-card mt-2" href="${esc(b.url)}" target="_blank" rel="noopener"><span class="lc-icon">🌐</span><div class="lc-body"><div class="lc-title">${esc(b.title||b.url)}</div><div class="lc-url">${esc(b.url)}</div></div><span class="lc-arr">→</span></a></div>`;
+  if(b.type==='pdf')return`<div class="cb">${toolbar}<span class="pill pill-pink">📄 ไฟล์</span><a class="link-card mt-2" href="${esc(b.url)}" target="_blank" rel="noopener"><span class="lc-icon">📄</span><div class="lc-body"><div class="lc-title">${esc(b.title||'เปิดไฟล์')}</div><div class="lc-url">${esc(b.url)}</div></div><span class="lc-arr">↓</span></a></div>`;
+  return'';
+}
+
+/* ════════════════════════════════════════
+   CHAT TAB
+════════════════════════════════════════ */
+function renderChatTab(tab){
+  const bot=ld().bot;
+  if(nurse){
+    const isCB=!!tab.chatbaseUrl;
+    document.getElementById('sc-body').innerHTML=`<div class="p-4">
+      <div style="background:linear-gradient(135deg,var(--c-dark),#1a6b47);color:#fff;border-radius:var(--r-lg);padding:20px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
+        <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🤖</div>
+        <div>
+          <div style="font-size:16px;font-weight:800">${esc(bot.name)}</div>
+          <div style="font-size:11px;opacity:.6;margin-top:2px">แชทบอท • ${bot.qa.length} Q&A</div>
+        </div>
+        <button class="btn btn-light btn-sm" style="margin-left:auto;flex-shrink:0" onclick="openBotSettings()">⚙ ตั้งค่า</button>
+      </div>
+      <div class="cfg-mode-grid">
+        <div class="cfg-mode-opt ${!isCB?'on':''}" onclick="setCBMode(false)"><div class="mo-i">🤖</div><div class="mo-n">บอทในตัว</div><div class="mo-d">ตั้งค่า Q&amp;A เอง</div></div>
+        <div class="cfg-mode-opt ${isCB?'on':''}" onclick="setCBMode(true)"><div class="mo-i">🔗</div><div class="mo-n">Chatbase</div><div class="mo-d">วาง embed URL</div></div>
+      </div>
+      <div id="cb-cfg" style="display:${isCB?'block':'none'}">
+        <div class="info-box"><b>วิธีหา URL:</b> Chatbase → Chatbot → Connect → Embed → คัดลอก <code>src="..."</code></div>
+        <div class="form-group"><label class="form-label">Chatbase URL</label><input class="form-input" id="cb-url" value="${esc(tab.chatbaseUrl||'')}" placeholder="https://www.chatbase.co/chatbot-iframe/xxx"></div>
+        <button class="btn btn-primary w-full" onclick="saveCBUrl()">💾 บันทึก URL</button>
+      </div>
+      <div id="builtin-cfg" style="display:${!isCB?'block':'none'}">
+        <div class="section-head">
+          <h3>Q&amp;A <span class="text-muted">(${bot.qa.length} รายการ)</span></h3>
+          <button class="btn btn-primary btn-sm" onclick="om('m-qa')">＋ เพิ่ม</button>
+        </div>
+        <div id="qa-inline">${qaListHtml()}</div>
+      </div>
+    </div>`;
+    return;
+  }
+  if(tab.chatbaseUrl){
+    const body=document.getElementById('sc-body');
+    body.style.display='flex'; body.style.flexDirection='column'; body.style.padding='0';
+    body.innerHTML=`<iframe class="chatbase-frame" src="${esc(tab.chatbaseUrl)}" allow="microphone"></iframe>`;
+    return;
+  }
+  const suggestions=bot.qa.slice(0,4).map(qa=>{
+    const f=qa.q.split(/[,،]/)[0].trim();
+    return f.length>22?f.slice(0,20)+'…':f;
+  });
+  const qrHtml=suggestions.length?`
+    <div class="quick-replies" id="quick-replies">
+      ${suggestions.map(s=>`<button class="qr-chip" onclick="quickSend(this,'${s.replace(/'/g,"\\'")}')">${s}</button>`).join('')}
+    </div>`:'';
+  document.getElementById('sc-body').innerHTML=`
+    <div class="chat-shell">
+      <div class="chat-bot-header">
+        <div class="chat-bot-av">🤖</div>
+        <div style="flex:1">
+          <div class="chat-bot-name">${esc(bot.name)}</div>
+          <div class="chat-bot-status"><span class="online-dot"></span>พร้อมให้บริการ</div>
+        </div>
+      </div>
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="chat-date-div">${new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long'})}</div>
+      </div>
+      ${qrHtml}
+      <div class="chat-input-area">
+        <input class="chat-input" id="chat-inp" placeholder="พิมพ์ข้อความ..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}">
+        <button class="chat-send" onclick="sendChat()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>`;
+  appendBot(bot.greeting);
+}
+
+function openBotSettings(){
+  const bot=ld().bot;
+  document.getElementById('bn-name').value=bot.name;
+  document.getElementById('bn-greet').value=bot.greeting;
+  document.getElementById('bn-fall').value=bot.fallback;
+  om('m-bot');
+}
+function setCBMode(on){
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  if(!on&&tab){tab.chatbaseUrl='';sv(d);}
+  document.getElementById('cb-cfg').style.display=on?'block':'none';
+  document.getElementById('builtin-cfg').style.display=on?'none':'block';
+  document.querySelectorAll('#sc-body .cfg-mode-opt').forEach((o,i)=>o.classList.toggle('on',on?(i===1):(i===0)));
+}
+function saveCBUrl(){
+  const raw=document.getElementById('cb-url').value.trim();
+  const m=raw.match(/src=["']([^"']+)["']/);
+  const url=m?m[1]:raw;
+  if(!url)return toast('กรุณาวาง URL จาก Chatbase','error');
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  if(tab){tab.chatbaseUrl=url;sv(d);toast('บันทึก Chatbase URL แล้ว ✓','success');}
+}
+function qaListHtml(){
+  const qa=ld().bot.qa;
+  if(!qa.length)return`<div class="sc-empty" style="padding:30px"><span class="em-illu" style="font-size:40px">💬</span><h3 style="font-size:15px">ยังไม่มี Q&A</h3><p>กด "+ เพิ่ม" เพื่อสอนบอท</p></div>`;
+  return qa.map((q,i)=>`
+    <div class="qa-card">
+      <div class="qa-num">${i+1}</div>
+      <div style="flex:1"><div class="qa-q">❓ ${esc(q.q)}</div><div class="qa-a">${esc(q.a)}</div></div>
+      <button class="btn btn-ghost btn-xs btn-ico" onclick="delQA('${q.id}')">🗑</button>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════
+   CHAT LOGIC
+════════════════════════════════════════ */
+function quickSend(btn,txt){
+  document.getElementById('quick-replies')?.remove();
+  document.getElementById('chat-inp').value=txt;
+  sendChat();
+}
+function sendChat(){
+  const inp=document.getElementById('chat-inp');
+  const txt=(inp?.value||'').trim();
+  if(!txt)return;
+  inp.value='';
+  document.getElementById('quick-replies')?.remove();
+  appendMe(txt);
+  showTyping();
+  setTimeout(()=>{hideTyping();appendBot(botReply(txt));},600+Math.random()*600);
+}
+function showTyping(){
+  const el=document.getElementById('chat-msgs');if(!el)return;
+  const d=document.createElement('div');d.id='_typ';d.className='chat-row bot';
+  d.innerHTML=`<div class="ch-av">🤖</div><div class="msg-wrap"><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>`;
+  el.appendChild(d);el.scrollTop=99999;
+}
+function hideTyping(){document.getElementById('_typ')?.remove();}
+function botReply(txt){
+  const bot=ld().bot; const lc=txt.toLowerCase();
+  let best=null,bestScore=0;
+  for(const qa of bot.qa){
+    const kws=qa.q.toLowerCase().split(/[\s,،]+/).filter(k=>k.length>0);
+    let score=0;
+    for(const k of kws){
+      if(lc.includes(k))score+=k.length*2;
+      else if(k.length>=3){
+        for(let i=0;i<=lc.length-Math.floor(k.length*.7);i++){
+          const sub=lc.slice(i,i+k.length); let m=0;
+          for(let j=0;j<sub.length&&j<k.length;j++)if(sub[j]===k[j])m++;
+          if(m/k.length>=.65){score+=m;break;}
+        }
+      }
+    }
+    if(score>bestScore){bestScore=score;best=qa;}
+  }
+  return(best&&bestScore>0)?best.a:bot.fallback;
+}
+function appendBot(txt){
+  const el=document.getElementById('chat-msgs');if(!el)return;
+  const d=document.createElement('div');d.className='chat-row bot';
+  d.innerHTML=`<div class="ch-av">🤖</div><div class="msg-wrap"><div class="bubble">${esc(txt).replace(/\n/g,'<br>')}</div><div class="ch-time">${now()}</div></div>`;
+  el.appendChild(d);el.scrollTop=99999;
+}
+function appendMe(txt){
+  const el=document.getElementById('chat-msgs');if(!el)return;
+  const d=document.createElement('div');d.className='chat-row me';
+  d.innerHTML=`<div class="ch-av">ฉ</div><div class="msg-wrap"><div class="bubble">${esc(txt)}</div><div class="ch-time">${now()}</div></div>`;
+  el.appendChild(d);el.scrollTop=99999;
+}
+
+/* ════════════════════════════════════════
+   PREVIEW
+════════════════════════════════════════ */
+function openPreview(){
+  const tab=ld().tabs.find(t=>t.id===activeTab);
+  if(!tab)return toast('เลือกแท็บที่ต้องการดูก่อน','error');
+  const subtabs=tab.subtabs||[];
+  const st=subtabs.find(s=>s.id===activeSubTab)||subtabs[0];
+  let html='';
+  if(tab.type==='chatbot'){
+    const bot=ld().bot;
+    html=tab.chatbaseUrl
+      ?`<div class="sc-empty"><span class="em-illu">🔗</span><h3>Chatbase</h3><p>จะแสดงแชทบอท Chatbase</p></div>`
+      :`<div style="background:linear-gradient(135deg,var(--c-dark),#1a6b47);padding:16px;display:flex;gap:12px;align-items:center"><div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px">🤖</div><div><div style="font-size:15px;font-weight:800;color:#fff">${esc(bot.name)}</div><div style="font-size:11px;color:rgba(255,255,255,.65)">พร้อมให้บริการ</div></div></div><div style="padding:16px;background:#f4fbf7"><div style="background:#fff;border-radius:18px;border-bottom-left-radius:4px;padding:12px 16px;font-size:13px;line-height:1.7">${esc(bot.greeting).replace(/\n/g,'<br>')}</div></div>`;
+  } else {
+    const stBar=subtabs.length>1?`<div class="sc-subtabs" style="position:static">${subtabs.map(s=>`<button class="sc-stab ${s.id===activeSubTab?'on':''}" style="cursor:default">${s.icon||''} ${esc(s.name)}</button>`).join('')}</div>`:'';
+    const blocks=st?.blocks||[];
+    html=`<div class="pg-head"><h2>${tab.icon||''} ${esc(tab.name)}</h2></div>${stBar}${blocks.length?blocks.map(b=>renderBlock(b,0,null)).join(''):
+      `<div class="sc-empty"><span class="em-illu">🔧</span><h3>กำลังปรับปรุง</h3></div>`}`;
+  }
+  document.getElementById('preview-body').innerHTML=html;
+  document.getElementById('preview-overlay').classList.add('open');
+}
+function closePreview(){document.getElementById('preview-overlay').classList.remove('open');}
+
+/* ════════════════════════════════════════
+   TAB CRUD
+════════════════════════════════════════ */
+function openAddTab(){
+  editTabId=null; selTabType='content';
+  document.getElementById('mt-title').textContent='เพิ่มแท็บใหม่';
+  document.getElementById('t-name').value=''; document.getElementById('t-icon').value='';
+  document.querySelectorAll('#m-tab .type-opt').forEach(o=>o.classList.toggle('on',o.dataset.type==='content'));
+  om('m-tab'); setTimeout(()=>document.getElementById('t-name').focus(),300);
+}
+function openEditTab(id){
+  const tab=ld().tabs.find(t=>t.id===id); if(!tab)return;
+  editTabId=id; selTabType=tab.type;
+  document.getElementById('mt-title').textContent='แก้ไขแท็บ';
+  document.getElementById('t-name').value=tab.name;
+  document.getElementById('t-icon').value=tab.icon||'';
+  document.querySelectorAll('#m-tab .type-opt').forEach(o=>o.classList.toggle('on',o.dataset.type===tab.type));
+  om('m-tab');
+}
+function pickTT(el){document.querySelectorAll('#m-tab .type-opt').forEach(o=>o.classList.remove('on'));el.classList.add('on');selTabType=el.dataset.type;}
+function saveTab(){
+  const name=document.getElementById('t-name').value.trim();
+  if(!name)return toast('กรุณากรอกชื่อแท็บ','error');
+  const d=ld();
+  if(editTabId){
+    const tab=d.tabs.find(t=>t.id===editTabId);
+    tab.name=name; tab.icon=document.getElementById('t-icon').value.trim(); tab.type=selTabType;
+  } else {
+    if(d.tabs.length>=4)return toast('เพิ่มได้สูงสุด 4 แท็บ','error');
+    const t={id:uid(),name,icon:document.getElementById('t-icon').value.trim()||iconOf(selTabType),type:selTabType,subtabs:[],chatbaseUrl:''};
+    if(selTabType==='content')t.subtabs=[{id:uid(),name:'ทั้งหมด',icon:'📋',blocks:[]}];
+    d.tabs.push(t); activeTab=t.id; activeSubTab=t.subtabs[0]?.id||null;
+  }
+  sv(d); cm('m-tab'); toast(editTabId?'แก้ไขแล้ว ✓':'เพิ่มแท็บ "'+name+'" แล้ว ✓','success');
+  renderNurseToolbar(); renderBody();
+}
+function delTab(id){
+  if(!confirm('ลบแท็บนี้? เนื้อหาจะหายหมด'))return;
+  const d=ld(); d.tabs=d.tabs.filter(t=>t.id!==id); sv(d);
+  if(activeTab===id){activeTab=d.tabs[0]?.id||null; activeSubTab=d.tabs[0]?.subtabs?.[0]?.id||null;}
+  toast('ลบแล้ว','info'); renderNurseToolbar(); renderBody();
+}
+
+/* ════════════════════════════════════════
+   SUB-TAB CRUD
+════════════════════════════════════════ */
+function openAddSubTab(){
+  editSubTabId=null;
+  document.getElementById('mst-title').textContent='เพิ่มหมวดย่อย';
+  document.getElementById('st-name').value=''; document.getElementById('st-icon').value='';
+  om('m-stab'); setTimeout(()=>document.getElementById('st-name').focus(),300);
+}
+function openEditSubTab(id){
+  const tab=ld().tabs.find(t=>t.id===activeTab);
+  const st=tab?.subtabs?.find(s=>s.id===id); if(!st)return;
+  editSubTabId=id;
+  document.getElementById('mst-title').textContent='แก้ไขหมวดย่อย';
+  document.getElementById('st-name').value=st.name; document.getElementById('st-icon').value=st.icon||'';
+  om('m-stab');
+}
+function saveSubTab(){
+  const name=document.getElementById('st-name').value.trim();
+  if(!name)return toast('กรุณากรอกชื่อหมวด','error');
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab); if(!tab.subtabs)tab.subtabs=[];
+  if(editSubTabId){
+    const st=tab.subtabs.find(s=>s.id===editSubTabId); st.name=name; st.icon=document.getElementById('st-icon').value.trim();
+  } else {
+    const st={id:uid(),name,icon:document.getElementById('st-icon').value.trim(),blocks:[]};
+    tab.subtabs.push(st); activeSubTab=st.id;
+  }
+  sv(d); cm('m-stab'); toast('บันทึกแล้ว ✓','success'); renderBody();
+}
+function delSubTab(id){
+  if(!confirm('ลบหมวดนี้?'))return;
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  tab.subtabs=tab.subtabs.filter(s=>s.id!==id); sv(d);
+  activeSubTab=tab.subtabs[0]?.id||null; toast('ลบแล้ว','info'); renderBody();
+}
+
+/* ════════════════════════════════════════
+   BLOCK CRUD
+════════════════════════════════════════ */
+const blkFields={
+  article:`<div class="form-group"><label class="form-label">ชื่อบทความ</label><input class="form-input" id="bf-title" placeholder="เช่น วิธีดูแลตัวเองหลังผ่าตัด"></div><div class="form-group"><label class="form-label">เนื้อหา</label><textarea class="form-input" id="bf-body" rows="7" placeholder="พิมพ์เนื้อหา..."></textarea></div>`,
+  youtube:`<div class="form-group"><label class="form-label">ชื่อวิดีโอ</label><input class="form-input" id="bf-title" placeholder="เช่น ท่าออกกำลังกายหลังผ่าตัด"></div><div class="form-group"><label class="form-label">YouTube URL</label><input class="form-input" id="bf-url" placeholder="https://www.youtube.com/watch?v=..."></div>`,
+  image:`<div class="form-group"><label class="form-label">ชื่อ / คำอธิบาย</label><input class="form-input" id="bf-title" placeholder="เช่น แผนผังโรงพยาบาล"></div><div class="form-group"><label class="form-label">URL รูปภาพ</label><input class="form-input" id="bf-url" placeholder="https://..."></div>`,
+  link:`<div class="form-group"><label class="form-label">ชื่อลิงก์</label><input class="form-input" id="bf-title" placeholder="เช่น เว็บโรงพยาบาล"></div><div class="form-group"><label class="form-label">URL</label><input class="form-input" id="bf-url" placeholder="https://..."></div>`,
+  pdf:`<div class="form-group"><label class="form-label">ชื่อไฟล์</label><input class="form-input" id="bf-title" placeholder="เช่น คู่มือผู้ป่วย.pdf"></div><div class="form-group"><label class="form-label">URL ไฟล์</label><input class="form-input" id="bf-url" placeholder="https://drive.google.com/..."><p class="text-sm text-muted" style="margin-top:6px;line-height:1.6">อัปโหลดใน Google Drive → เปลี่ยนสิทธิ์ "ทุกคนที่มีลิงก์" → คัดลอก URL</p></div>`
+};
+function openAddBlock(){
+  editBlkId=null; selBlkType='article';
+  document.getElementById('mb-title').textContent='เพิ่มเนื้อหา';
+  document.querySelectorAll('#blk-type-grid .type-opt').forEach(o=>o.classList.toggle('on',o.dataset.t==='article'));
+  showBlkFields('article'); om('m-block');
+}
+function openEditBlock(stId,idx){
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  const st=tab?.subtabs?.find(s=>s.id===stId);
+  const b=st?.blocks?.[idx]; if(!b)return;
+  editBlkId={stId,idx}; selBlkType=b.type;
+  document.getElementById('mb-title').textContent='แก้ไขเนื้อหา';
+  document.querySelectorAll('#blk-type-grid .type-opt').forEach(o=>o.classList.toggle('on',o.dataset.t===b.type));
+  showBlkFields(b.type);
+  setTimeout(()=>{
+    if(document.getElementById('bf-title'))document.getElementById('bf-title').value=b.title||'';
+    if(document.getElementById('bf-body'))document.getElementById('bf-body').value=b.body||'';
+    if(document.getElementById('bf-url'))document.getElementById('bf-url').value=b.url||(b.ytId?`https://youtu.be/${b.ytId}`:'');
+  },50);
+  om('m-block');
+}
+function pickBT(el){document.querySelectorAll('#blk-type-grid .type-opt').forEach(o=>o.classList.remove('on'));el.classList.add('on');selBlkType=el.dataset.t;showBlkFields(el.dataset.t);}
+function showBlkFields(t){document.getElementById('blk-fields').innerHTML=blkFields[t]||'';}
+function saveBlock(){
+  const title=(document.getElementById('bf-title')?.value||'').trim();
+  const url=(document.getElementById('bf-url')?.value||'').trim();
+  const body=(document.getElementById('bf-body')?.value||'').trim();
+  let blk={id:uid(),type:selBlkType,title};
+  if(selBlkType==='article'){if(!body)return toast('กรุณากรอกเนื้อหา','error');blk.body=body;}
+  else if(selBlkType==='youtube'){const m=url.match(/(?:v=|youtu\.be\/|\/embed\/)([A-Za-z0-9_-]{11})/);if(!m)return toast('ลิงก์ YouTube ไม่ถูกต้อง','error');blk.ytId=m[1];}
+  else{if(!url)return toast('กรุณากรอก URL','error');blk.url=url;}
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  let st=tab?.subtabs?.find(s=>s.id===activeSubTab);
+  if(!st&&tab?.subtabs?.length){st=tab.subtabs[0];activeSubTab=st.id;}
+  if(!st)return toast('กรุณาเพิ่มหมวดย่อยก่อน','error');
+  if(!st.blocks)st.blocks=[];
+  if(editBlkId){
+    blk.id=st.blocks[editBlkId.idx]?.id||uid();
+    const tSt=tab.subtabs.find(s=>s.id===editBlkId.stId)||st;
+    tSt.blocks[editBlkId.idx]=blk;
+    toast('แก้ไขแล้ว ✓','success');
+  } else {
+    st.blocks.push(blk);
+    toast('เพิ่มเนื้อหาแล้ว ✓','success');
+  }
+  sv(d); cm('m-block'); editBlkId=null; renderBody();
+}
+function delBlk(stId,i){
+  if(!confirm('ลบเนื้อหานี้?'))return;
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  const st=tab?.subtabs?.find(s=>s.id===stId); if(!st)return;
+  st.blocks.splice(i,1); sv(d); renderBody(); toast('ลบแล้ว','info');
+}
+function moveBlk(stId,i,dir){
+  const d=ld(); const tab=d.tabs.find(t=>t.id===activeTab);
+  const st=tab?.subtabs?.find(s=>s.id===stId); if(!st)return;
+  const j=i+dir; if(j<0||j>=st.blocks.length)return;
+  [st.blocks[i],st.blocks[j]]=[st.blocks[j],st.blocks[i]]; sv(d); renderBody();
+}
+
+/* ════════════════════════════════════════
+   BOT / Q&A
+════════════════════════════════════════ */
+function saveBotCfg(){
+  const d=ld();
+  d.bot.name=document.getElementById('bn-name').value.trim()||'Smart Bot';
+  d.bot.greeting=document.getElementById('bn-greet').value.trim()||d.bot.greeting;
+  d.bot.fallback=document.getElementById('bn-fall').value.trim()||d.bot.fallback;
+  sv(d); cm('m-bot'); toast('บันทึกแล้ว ✓','success'); renderBody();
+}
+function saveQA(){
+  const q=document.getElementById('qa-q').value.trim();
+  const a=document.getElementById('qa-a').value.trim();
+  if(!q||!a)return toast('กรุณากรอกทั้งคำถามและคำตอบ','error');
+  const d=ld(); d.bot.qa.push({id:uid(),q,a}); sv(d);
+  document.getElementById('qa-q').value=''; document.getElementById('qa-a').value='';
+  cm('m-qa');
+  if(document.getElementById('qa-inline'))document.getElementById('qa-inline').innerHTML=qaListHtml();
+  toast('เพิ่ม Q&A แล้ว ✓','success');
+}
+function delQA(id){
+  const d=ld(); d.bot.qa=d.bot.qa.filter(q=>q.id!==id); sv(d);
+  if(document.getElementById('qa-inline'))document.getElementById('qa-inline').innerHTML=qaListHtml();
+  toast('ลบแล้ว','info');
+}
+
+/* ════════════════════════════════════════
+   UTILS
+════════════════════════════════════════ */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function om(id){document.getElementById(id).classList.add('open');}
+function cm(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('overlay'))e.target.classList.remove('open');});
+function toast(msg,type='info'){
+  const box=document.getElementById('sc-toast');
+  const el=document.createElement('div');
+  el.className='sc-toast '+type; el.textContent=msg;
+  box.appendChild(el);
+  setTimeout(()=>{el.style.animation='toast-out .3s forwards';setTimeout(()=>el.remove(),300);},3000);
+}
+function now(){return new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});}
+
+/* ── touchend fallback for modal buttons (iOS 300ms click delay fix) ── */
+document.querySelectorAll('.sheet-foot .btn-primary').forEach(btn=>{
+  btn.addEventListener('touchend', function(e){
+    e.preventDefault();
+    this.click();
+  }, {passive:false});
+});
+
+/* ── iOS Visual Viewport fix (keyboard pushes overlay up) ── */
+function _syncVV(){
+  if(!window.visualViewport)return;
+  const vv=window.visualViewport;
+  const top=vv.offsetTop;
+  const h=vv.height;
+  document.querySelectorAll('.overlay').forEach(el=>{
+    el.style.top=top+'px';
+    el.style.height=h+'px';
+  });
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',_syncVV);
+  window.visualViewport.addEventListener('scroll',_syncVV);
+}
+</script>
+</body>
+</html>
