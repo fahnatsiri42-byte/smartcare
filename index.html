@@ -642,8 +642,16 @@ function df(){
   };
 }
 
-// ld() — อ่านจาก cache (sync)
-function ld(){ return JSON.parse(JSON.stringify(_data || df())); }
+// ld() — อ่านจาก cache (sync) + เติม default ที่ขาดหาย
+function ld(){
+  const base = df();
+  const raw  = JSON.parse(JSON.stringify(_data || base));
+  // Firebase ตัด key ที่เป็น [] ออก → เติมกลับ
+  if(!Array.isArray(raw.tabs))  raw.tabs = base.tabs;
+  if(!raw.bot)                  raw.bot  = base.bot;
+  if(!Array.isArray(raw.bot?.qa)) raw.bot.qa = [];
+  return raw;
+}
 
 // sv() — เขียนไป Firebase (async) + อัปเดต cache
 function sv(d){
@@ -1399,7 +1407,13 @@ function delQA(id){
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function om(id){document.getElementById(id).classList.add('open');}
 function cm(id){document.getElementById(id).classList.remove('open');}
-document.addEventListener('click',e=>{if(e.target.classList.contains('overlay'))e.target.classList.remove('open');});
+document.addEventListener('click',e=>{
+  // ปิด modal เฉพาะเมื่อคลิก overlay background (ไม่ใช่ sheet)
+  const tgt=e.target;
+  if(tgt.classList.contains('overlay') && !tgt.querySelector('.sheet').contains(e.composedPath()[0])){
+    tgt.classList.remove('open');
+  }
+});
 function toast(msg,type='info'){
   const box=document.getElementById('sc-toast');
   const el=document.createElement('div');
@@ -1409,12 +1423,9 @@ function toast(msg,type='info'){
 }
 function now(){return new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});}
 
-/* ── touchend fallback for modal buttons (iOS 300ms click delay fix) ── */
-document.querySelectorAll('.sheet-foot .btn-primary').forEach(btn=>{
-  btn.addEventListener('touchend', function(e){
-    e.preventDefault();
-    this.click();
-  }, {passive:false});
+/* ── ป้องกัน event บน sheet ไปโดน overlay ── */
+document.querySelectorAll('.sheet').forEach(s=>{
+  s.addEventListener('click',e=>e.stopPropagation());
 });
 
 /* ── iOS Visual Viewport fix (keyboard pushes overlay up) ── */
